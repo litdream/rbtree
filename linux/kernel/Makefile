@@ -14,6 +14,9 @@ SHARED_LIB = librbtree.so
 SRCS = rbtree.c
 OBJS = $(SRCS:.c=.o)
 
+# Header files to install
+HEADERS = rbtree.h rbtree_types.h rbtree_augmented.h
+
 # Test program
 TEST_SRCS = rbtree-tst.c
 TEST_PROG = rbtree-tst
@@ -41,4 +44,12 @@ $(TEST_PROG): $(TEST_SRCS) $(STATIC_LIB)
 clean:
 	rm -f $(OBJS) $(STATIC_LIB) $(SHARED_LIB) $(TEST_PROG)
 
-.PHONY: all clean
+# Install library and headers
+install: $(STATIC_LIB) $(SHARED_LIB)
+	install -d $(DESTDIR)/usr/local/lib
+	install -d $(DESTDIR)/usr/local/include
+	install -m 644 $(STATIC_LIB) $(DESTDIR)/usr/local/lib/
+	install -m 755 $(SHARED_LIB) $(DESTDIR)/usr/local/lib/
+	install -m 644 $(HEADERS) $(DESTDIR)/usr/local/include/
+
+.PHONY: all clean install
