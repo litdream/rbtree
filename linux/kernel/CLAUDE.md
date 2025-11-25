@@ -13,24 +13,18 @@ The codebase includes:
 
 ## Building and Testing
 
-### Build Commands
+### Legacy Test Program (Makefile-based)
 
 From `linux/mine/` directory:
 ```bash
 make              # Build the test program
 make clean        # Clean build artifacts
+./rbtree-tst      # Run the rbtree test program
 ```
 
 The Makefile uses:
 - Compiler flags: `-g -O0 -Wall`
 - Produces executable: `rbtree-tst`
-
-### Running Tests
-
-From `linux/mine/` directory:
-```bash
-./rbtree-tst      # Run the rbtree test program
-```
 
 The test program:
 - Inserts 32 nodes (numbered 0-31)
@@ -38,15 +32,56 @@ The test program:
 - Deletes nodes 20, 10, and 15
 - Searches remaining nodes
 
+### Unit Tests (GoogleTest/CMake-based)
+
+From `linux/kernel/` directory:
+
+**Build the tests:**
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
+**Run the tests:**
+```bash
+# From build/ directory
+./rbtree_unittest           # Run all tests
+./rbtree_unittest --gtest_list_tests  # List available tests
+./rbtree_unittest --gtest_filter=RBTreeTest.InsertSingleNode  # Run specific test
+```
+
+**Clean up:**
+```bash
+# From linux/kernel/ directory
+rm -rf build/
+```
+
+**Test Coverage:**
+
+The unit tests cover:
+- **Basic operations**: Insert, search, delete single and multiple nodes
+- **Edge cases**: Empty tree, duplicate insertions, non-existing searches
+- **Iteration**: Forward (rb_next), backward (rb_prev), first/last nodes
+- **Advanced features**: Node replacement (rb_replace_node), cached roots
+- **Stress testing**: Large numbers of insertions (1000 nodes)
+- **Tree properties**: Proper ordering, correct node counts after operations
+
+All tests verify correct red-black tree behavior including proper rebalancing after insertions and deletions.
+
 ## Code Architecture
 
 ### Directory Structure
 
 - `linux/kernel/` - New rbtree implementation files (currently being developed)
   - `rbtree.c` - Core rbtree implementation
-  - `rbtree.h` - Main API header
+  - `rbtree.h` - Main API header (for C programs)
+  - `rbtree.hpp` - C++ compatible header (for C++ programs)
   - `rbtree_types.h` - Type definitions
   - `rbtree_augmented.h` - Augmented rbtree support
+  - `rbtree_unittest.cpp` - GoogleTest unit tests
+  - `CMakeLists.txt` - CMake build configuration for tests
 
 - `linux/mine/` - Working userspace implementation
   - `rbtree-tst.c` - Test program demonstrating rbtree usage
@@ -104,6 +139,16 @@ The kernel headers have dependencies that need to be satisfied for userspace:
 - `<linux/export.h>` - Export symbol macros
 
 When adapting for pure userspace, these typically need to be replaced or stubbed out.
+
+### Using in C++ Programs
+
+For C++ programs, use `rbtree.hpp` instead of `rbtree.h`. The `.hpp` header provides:
+- C++-compatible declarations (using `extern "C"` for C functions)
+- Resolves C++ keyword conflicts (e.g., `new` parameter renamed to `new_node`)
+- Uses C++ standard headers (`<cstddef>`)
+- Uses `decltype` instead of `typeof` for type inference
+- Uses `nullptr` instead of `NULL`
+- Simplified macros that work with C++ type system
 
 ## Notes
 

@@ -1,37 +1,34 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 /*
-  Red Black Trees
-  (C) 1999  Andrea Arcangeli <andrea@suse.de>
+ * C++ interface for rbtree implementation
+ * This header provides C++-compatible declarations for the rbtree API
+ * Adapted from Linux kernel for C++ userspace programs
+ */
 
-  Adapted from Linux kernel for userspace
+#ifndef _RBTREE_HPP
+#define _RBTREE_HPP
 
-  To use rbtrees you'll have to implement your own insert and search cores.
-  This will avoid us to use callbacks and to drop drammatically performances.
-  I know it's not the cleaner way,  but in C (not in C++) to get
-  performances and genericity...
+#include <cstddef>
 
-  See Documentation/core-api/rbtree.rst for documentation and samples.
-*/
-
-#ifndef	_RBTREE_H
-#define	_RBTREE_H
-
-#include <stddef.h>
-#include <stdbool.h>
+extern "C" {
 #include "rbtree_types.h"
+}
 
-/* container_of macro for userspace */
-#define container_of(ptr, type, member) ({			\
-	const typeof(((type *)0)->member) *__mptr = (ptr);	\
-	(type *)((char *)__mptr - offsetof(type, member));	\
-})
+/* container_of macro for C++ */
+#define container_of(ptr, type, member) \
+	((type *)((char *)(ptr) - offsetof(type, member)))
 
 /* Userspace replacements for kernel macros */
 #define likely(x)      __builtin_expect(!!(x), 1)
 #define unlikely(x)    __builtin_expect(!!(x), 0)
+
+#ifndef __always_inline
 #define __always_inline inline __attribute__((__always_inline__))
-#define WRITE_ONCE(x, val) (*(volatile typeof(x) *)&(x) = (val))
-#define READ_ONCE(x) (*(volatile typeof(x) *)&(x))
+#endif
+
+// C++ compatible versions without typeof
+#define WRITE_ONCE(x, val) (*static_cast<volatile decltype(x)*>(&(x)) = (val))
+#define READ_ONCE(x) (*static_cast<const volatile decltype(x)*>(&(x)))
 
 #define rb_parent(r)   ((struct rb_node *)((r)->__rb_parent_color & ~3))
 
@@ -46,23 +43,25 @@
 	((node)->__rb_parent_color = (unsigned long)(node))
 
 
-extern void rb_insert_color(struct rb_node *, struct rb_root *);
-extern void rb_erase(struct rb_node *, struct rb_root *);
-
+extern "C" {
+void rb_insert_color(struct rb_node *, struct rb_root *);
+void rb_erase(struct rb_node *, struct rb_root *);
 
 /* Find logical next and previous nodes in a tree */
-extern struct rb_node *rb_next(const struct rb_node *);
-extern struct rb_node *rb_prev(const struct rb_node *);
-extern struct rb_node *rb_first(const struct rb_root *);
-extern struct rb_node *rb_last(const struct rb_root *);
+struct rb_node *rb_next(const struct rb_node *);
+struct rb_node *rb_prev(const struct rb_node *);
+struct rb_node *rb_first(const struct rb_root *);
+struct rb_node *rb_last(const struct rb_root *);
 
 /* Postorder iteration - always visit the parent after its children */
-extern struct rb_node *rb_first_postorder(const struct rb_root *);
-extern struct rb_node *rb_next_postorder(const struct rb_node *);
+struct rb_node *rb_first_postorder(const struct rb_root *);
+struct rb_node *rb_next_postorder(const struct rb_node *);
 
 /* Fast replacement of a single node without remove/rebalance/add/rebalance */
-extern void rb_replace_node(struct rb_node *victim, struct rb_node *new,
+// Note: C header uses 'new' as parameter name, which conflicts with C++ keyword
+void rb_replace_node(struct rb_node *victim, struct rb_node *new_node,
 			    struct rb_root *root);
+}
 
 static inline void rb_link_node(struct rb_node *node, struct rb_node *parent,
 				struct rb_node **rb_link)
@@ -73,10 +72,9 @@ static inline void rb_link_node(struct rb_node *node, struct rb_node *parent,
 	*rb_link = node;
 }
 
+// C++ compatible rb_entry_safe using decltype
 #define rb_entry_safe(ptr, type, member) \
-	({ typeof(ptr) ____ptr = (ptr); \
-	   ____ptr ? rb_entry(____ptr, type, member) : NULL; \
-	})
+	((ptr) ? rb_entry(ptr, type, member) : nullptr)
 
 /**
  * rbtree_postorder_for_each_entry_safe - iterate in post-order over rb_root of
@@ -128,12 +126,12 @@ rb_erase_cached(struct rb_node *node, struct rb_root_cached *root)
 }
 
 static inline void rb_replace_node_cached(struct rb_node *victim,
-					  struct rb_node *new,
+					  struct rb_node *new_node,
 					  struct rb_root_cached *root)
 {
 	if (root->rb_leftmost == victim)
-		root->rb_leftmost = new;
-	rb_replace_node(victim, new, &root->rb_root);
+		root->rb_leftmost = new_node;
+	rb_replace_node(victim, new_node, &root->rb_root);
 }
 
 /*
@@ -220,7 +218,7 @@ rb_add(struct rb_node *node, struct rb_root *tree,
  */
 static __always_inline struct rb_node *
 rb_find_add_cached(struct rb_node *node, struct rb_root_cached *tree,
-	    int (*cmp)(const struct rb_node *new, const struct rb_node *exist))
+	    int (*cmp)(const struct rb_node *new_node, const struct rb_node *exist))
 {
 	bool leftmost = true;
 	struct rb_node **link = &tree->rb_root.rb_node;
@@ -367,4 +365,4 @@ rb_next_match(const void *key, struct rb_node *node,
 	for ((node) = rb_find_first((key), (tree), (cmp)); \
 	     (node); (node) = rb_next_match((key), (node), (cmp)))
 
-#endif	/* _LINUX_RBTREE_H */
+#endif	/* _RBTREE_HPP */
