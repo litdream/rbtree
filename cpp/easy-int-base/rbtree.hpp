@@ -28,7 +28,7 @@ public:
     ~RBTree();
 
     Node *Insert(int key);
-    // Node *Remove(int key);
+    Node *Remove(int key);
     Node *Search(int key) const;
     // void  PrintTree() const;
     // void  InOrderTraverse() const;
@@ -47,6 +47,7 @@ FRIEND_TEST(RBTreeInsertTest, InsertIntoEmptyTree);
 FRIEND_TEST(RBTreeInsertTest, DuplicateInsertion);
 FRIEND_TEST(RBTreeInsertTest, MultipleInsertionsSimpleStructure);
 #endif
+
     //
     // NOTE:  Make sure to define UNIT_TEST_BUILD variable in compiler.
     //   - CMake provides like this:
@@ -58,10 +59,10 @@ FRIEND_TEST(RBTreeInsertTest, MultipleInsertionsSimpleStructure);
     void rotateLeft(Node *&node);
     void rotateRight(Node *&node);
     void fixInsert(Node *&node);
-    // void fixDelete(Node *&node);
+    void fixDelete(Node *&node);
 
-    // Node *minValueNode(Node *&node);
-    // void transplant(Node *&u, Node *&v);
+    Node *minValueNode(Node *&node);
+    void transplant(Node *&u, Node *&v);
     // void printHelper(Node *root, std::string indent, bool last) const;
     // void deleteTree(Node *node);
 

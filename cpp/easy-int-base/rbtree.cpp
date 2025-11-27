@@ -227,3 +227,154 @@ void RBTree::rotateRight(Node *&y) {
     x->right = y;
     y->parent = x;
 }
+
+
+Node *
+RBTree::Remove(int key) {
+    Node *del_node = Search(key);
+    if (del_node == nullptr) {
+        return nullptr; // Node not found
+    }
+
+    Node *child_of_removed;
+    Node *node_position = del_node;
+    Color removed_node_original_color = node_position->color;
+
+    if (del_node->left == nullptr) {
+        child_of_removed = del_node->right;
+        transplant(del_node, del_node->right);
+    } else if (del_node->right == nullptr) {
+        child_of_removed = del_node->left;
+        transplant(del_node, del_node->left);
+    } else {
+        node_position = minValueNode(del_node->right);
+        removed_node_original_color = node_position->color;
+        child_of_removed = node_position->right;
+        if (node_position->parent == del_node) {
+            if (child_of_removed != nullptr) 
+                child_of_removed->parent = node_position;
+        } else {
+            transplant(node_position, node_position->right);
+            node_position->right = del_node->right;
+            node_position->right->parent = node_position;
+        }
+        transplant(del_node, node_position);
+        node_position->left = del_node->left;
+        node_position->left->parent = node_position;
+        node_position->color = del_node->color;
+    }
+
+    if (removed_node_original_color == BLACK) {
+        if (child_of_removed != nullptr) fixDelete(child_of_removed);
+    }
+
+    delete del_node;
+    return node_position; // Return the node that took the deleted node's place
+}
+
+/**
+ * @brief Replaces one subtree as a child of its parent with another subtree.
+ *
+ * This function effectively replaces the node `u` in the tree with node `v`.
+ * It updates the parent of `u` to point to `v` instead of `u`.
+ * If `u` was the root, `v` becomes the new root.
+ * It also sets the parent of `v` to `u`'s parent, if `v` is not nullptr.
+ * This function is crucial for Red-Black Tree deletion, as it allows for
+ * the removal of a node by replacing it with another (e.g., its child or successor).
+ *
+ * @param u A reference to the pointer of the node to be replaced.
+ * @param v A reference to the pointer of the node that will replace `u`.
+ */
+void
+RBTree::transplant(Node *&u, Node *&v) {
+    if (u->parent == nullptr) {
+        root = v;
+    } else if (u == u->parent->left) {
+        u->parent->left = v;
+    } else {
+        u->parent->right = v;
+    }
+    if (v != nullptr) {
+        v->parent = u->parent;
+    }
+}
+
+Node *
+RBTree::minValueNode(Node *&node) {
+    Node *cur = node;
+    while (cur->left != nullptr) {
+        cur = cur->left;
+    }
+    return cur;
+}
+
+/**
+ * @brief Restores the Red-Black Tree properties after a node deletion.
+ *
+ * When a black node is removed from the tree, it violates the black-height
+ * property (Property 5), which states that all paths from a node to its
+ * descendant NIL leaves contain the same number of black nodes. This function
+ * fixes the tree by performing a series of rotations and recolorings to
+ * ensure all properties are maintained.
+ *
+ * @param node The node where the fixing process starts. This is the child of
+ *             the physically removed node.
+ */
+void
+RBTree::fixDelete(Node *&node) {
+    while (node != root && (node == nullptr || node->color == BLACK)) {
+        if (node == node->parent->left) {
+            Node *sibling = node->parent->right; // sibling is node's sibling
+            if (sibling->color == RED) {
+                sibling->color = BLACK;
+                node->parent->color = RED;
+                rotateLeft(node->parent);
+                sibling = node->parent->right;
+            }
+            if ((sibling->left == nullptr || sibling->left->color == BLACK) &&
+                (sibling->right == nullptr || sibling->right->color == BLACK)) {
+                sibling->color = RED;
+                node = node->parent;
+            } else {
+                if (sibling->right == nullptr || sibling->right->color == BLACK) {
+                    if (sibling->left != nullptr) sibling->left->color = BLACK;
+                    sibling->color = RED;
+                    rotateRight(sibling);
+                    sibling = node->parent->right;
+                }
+                sibling->color = node->parent->color;
+                node->parent->color = BLACK;
+                if (sibling->right != nullptr) sibling->right->color = BLACK;
+                rotateLeft(node->parent);
+                node = root;
+            }
+        } else { // Symmetrical case: node is right child
+            Node *sibling = node->parent->left; // sibling is node's sibling
+            if (sibling->color == RED) {
+                sibling->color = BLACK;
+                node->parent->color = RED;
+                rotateRight(node->parent);
+                sibling = node->parent->left;
+            }
+            if ((sibling->right == nullptr || sibling->right->color == BLACK) &&
+                (sibling->left == nullptr || sibling->left->color == BLACK)) {
+                sibling->color = RED;
+                node = node->parent;
+            } else {
+                if (sibling->left == nullptr || sibling->left->color == BLACK) {
+                    if (sibling->right != nullptr) sibling->right->color = BLACK;
+                    sibling->color = RED;
+                    rotateLeft(sibling);
+                    sibling = node->parent->left;
+                }
+                sibling->color = node->parent->color;
+                node->parent->color = BLACK;
+                if (sibling->left != nullptr) sibling->left->color = BLACK;
+                rotateRight(node->parent);
+                node = root;
+            }
+        }
+    }
+    if (node != nullptr) node->color = BLACK;
+}
+
